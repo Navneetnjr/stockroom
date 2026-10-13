@@ -1,0 +1,10 @@
+[project]
+name = "stockroom"
+version = "0.1.0"
+description = "Multi-tenant inventory and order management REST API"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "flask>=3.1.3",
+    "gunicorn>=26.2.0",
+]
