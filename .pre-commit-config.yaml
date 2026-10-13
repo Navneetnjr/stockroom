@@ -1,0 +1,21 @@
+# Checks that run automatically on every `git commit`.
+# They use the tool versions installed in this project (via `uv run`).
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check (find mistakes)
+        entry: uv run ruff check --fix
+        language: system
+        types: [python]
+      - id: ruff-format
+        name: ruff format (tidy formatting)
+        entry: uv run ruff format
+        language: system
+        types: [python]
+      - id: mypy
+        name: mypy (strict type check)
+        entry: uv run mypy
+        language: system
+        types: [python]
+        pass_filenames: false

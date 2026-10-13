@@ -31,3 +31,18 @@ Stop everything with `Ctrl+C`, or `docker compose down` (add `-v` to also delete
 uv sync
 uv run flask --app app run --port 8000 --debug
 ```
+
+## Checks and tests
+
+```bash
+uv run ruff check .          # lint
+uv run ruff format .         # format
+uv run mypy                  # strict type check
+uv run pytest                # tests with coverage report
+```
+
+Install the Git hook once so these checks run on every commit:
+
+```bash
+uv run pre-commit install
+```
