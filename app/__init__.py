@@ -4,8 +4,9 @@ from typing import Any
 from flask import Flask
 
 from app import models  # noqa: F401  (registers every table with SQLAlchemy)
-from app.api.health import health_bp
+from app.api import health
 from app.config import Config
+from app.errors import StockroomApi, register_error_handlers
 from app.extensions import db
 
 
@@ -23,5 +24,10 @@ def create_app(overrides: Mapping[str, Any] | None = None) -> Flask:
         raise RuntimeError("DATABASE_URL is not set. Copy .env.example to .env and fill it in.")
 
     db.init_app(app)
-    app.register_blueprint(health_bp)
+
+    # The Api object collects every endpoint into the OpenAPI spec and the /docs page
+    api = StockroomApi(app)
+    api.register_blueprint(health.blp)
+    register_error_handlers(app)
+
     return app

@@ -29,8 +29,19 @@ Stop everything with `Ctrl+C`, or `docker compose down` (add `-v` to also delete
 
 ```bash
 uv sync
+uv run alembic upgrade head
 uv run flask --app app run --port 8000 --debug
 ```
+
+## API documentation
+
+Generated automatically from the code:
+
+- Interactive docs (Swagger UI): http://localhost:8000/docs
+- OpenAPI spec (JSON): http://localhost:8000/openapi.json
+
+Every error response uses the RFC 9457 "problem details" format
+(`application/problem+json`) with `type`, `title`, `status`, `detail` and `instance`.
 
 ## Checks and tests
 
