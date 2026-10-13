@@ -9,6 +9,26 @@ jobs:
   checks:
     name: Lint, type-check and test
     runs-on: ubuntu-latest
+
+    # A throwaway PostgreSQL that exists only while this job runs
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: stockroom
+          POSTGRES_PASSWORD: stockroom
+          POSTGRES_DB: stockroom_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U stockroom"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      TEST_DATABASE_URL: postgresql+psycopg://stockroom:stockroom@localhost:5432/stockroom_test
+
     steps:
       - name: Get the code
         uses: actions/checkout@v4
