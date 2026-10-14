@@ -1,4 +1,3 @@
-import os
 from typing import NoReturn
 
 import pytest
@@ -7,6 +6,7 @@ from flask.testing import FlaskClient
 
 from app import create_app
 from app.errors import PROBLEM_CONTENT_TYPE, ApiError
+from tests.helpers import settings_for_tests
 
 
 class OutOfStockError(ApiError):
@@ -18,7 +18,7 @@ class OutOfStockError(ApiError):
 @pytest.fixture
 def app_with_failing_routes() -> Flask:
     """A separate app with two extra routes that fail on purpose."""
-    app = create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": os.environ["TEST_DATABASE_URL"]})
+    app = create_app(settings_for_tests())
 
     @app.get("/raise-api-error")
     def raise_api_error() -> NoReturn:

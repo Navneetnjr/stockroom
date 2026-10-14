@@ -43,6 +43,15 @@ Generated automatically from the code:
 Every error response uses the RFC 9457 "problem details" format
 (`application/problem+json`) with `type`, `title`, `status`, `detail` and `instance`.
 
+### Trying it on /docs
+
+1. `POST /auth/register` with a shop name, email and password. You get back an `access_token`.
+2. Click **Authorize** (top right) and paste the token.
+3. Call any protected endpoint, e.g. `GET /auth/me`.
+
+Roles: the user who registers a shop is an **admin**. Admins can add **staff** users with
+`POST /users`. Staff cannot manage users.
+
 ## Checks and tests
 
 ```bash

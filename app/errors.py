@@ -39,6 +39,26 @@ class ApiError(Exception):
         self.detail = detail
 
 
+class UnauthorizedError(ApiError):
+    status = 401
+    title = "Unauthorized"
+
+
+class ForbiddenError(ApiError):
+    status = 403
+    title = "Forbidden"
+
+
+class NotFoundError(ApiError):
+    status = 404
+    title = "Not Found"
+
+
+class ConflictError(ApiError):
+    status = 409
+    title = "Conflict"
+
+
 def problem_response(
     status: int,
     title: str,
@@ -77,7 +97,7 @@ class StockroomApi(Api):
         for name, value in error.get_headers():
             if name.lower() != "content-type":
                 response.headers[name] = value
-        for name, value in data.get("headers", {}).items():
+        for name, value in (data.get("headers") or {}).items():
             response.headers[name] = value
         return response
 

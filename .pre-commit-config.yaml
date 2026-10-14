@@ -1,5 +1,6 @@
 # Checks that run automatically on every `git commit`.
 # They use the tool versions installed in this project (via `uv run`).
+# require_serial: run one copy at a time (parallel copies can exhaust memory on small machines).
 repos:
   - repo: local
     hooks:
@@ -8,11 +9,13 @@ repos:
         entry: uv run ruff check --fix
         language: system
         types: [python]
+        require_serial: true
       - id: ruff-format
         name: ruff format (tidy formatting)
         entry: uv run ruff format
         language: system
         types: [python]
+        require_serial: true
       - id: mypy
         name: mypy (strict type check)
         entry: uv run mypy

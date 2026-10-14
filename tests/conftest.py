@@ -10,6 +10,7 @@ from sqlalchemy import text
 
 from app import create_app
 from app.extensions import Base, db
+from tests.helpers import settings_for_tests
 
 TEST_DATABASE_URL = os.environ["TEST_DATABASE_URL"]
 
@@ -26,7 +27,7 @@ def _migrate_test_database() -> None:
 @pytest.fixture(scope="session")
 def app() -> Flask:
     """One app for the whole test run, connected to the test database."""
-    return create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": TEST_DATABASE_URL})
+    return create_app(settings_for_tests())
 
 
 @pytest.fixture(autouse=True)
