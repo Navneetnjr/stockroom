@@ -4,7 +4,7 @@ from typing import Any
 from flask import Flask
 
 from app import models  # noqa: F401  (registers every table with SQLAlchemy)
-from app.api import auth, health, users
+from app.api import auth, health, products, users
 from app.auth import init_auth
 from app.config import Config
 from app.errors import StockroomApi, register_error_handlers
@@ -35,7 +35,7 @@ def create_app(overrides: Mapping[str, Any] | None = None) -> Flask:
 
     # The Api object collects every endpoint into the OpenAPI spec and the /docs page
     api = StockroomApi(app)
-    for module in (health, auth, users):
+    for module in (health, auth, users, products):
         api.register_blueprint(module.blp)
     register_error_handlers(app)
 
