@@ -4,6 +4,7 @@ from flask_smorest import Blueprint
 
 from app.auth import REQUIRES_LOGIN, auth_required, current_tenant_id
 from app.errors import ProblemSchema
+from app.idempotency import ACCEPTS_IDEMPOTENCY_KEY, idempotent
 from app.models import Product, StockMovement, UserRole
 from app.schemas.products import (
     CreateProductSchema,
@@ -31,8 +32,9 @@ def list_products() -> list[Product]:
 
 
 @blp.route("", methods=["POST"])
-@blp.doc(**REQUIRES_LOGIN)
+@blp.doc(**REQUIRES_LOGIN, **ACCEPTS_IDEMPOTENCY_KEY)
 @auth_required(UserRole.ADMIN)
+@idempotent
 @blp.arguments(CreateProductSchema)
 @blp.response(201, ProductSchema)
 @blp.alt_response(409, schema=ProblemSchema, description="SKU already used in your shop")
@@ -98,8 +100,9 @@ def list_stock_movements(product_id: int) -> list[StockMovement]:
 
 
 @blp.route("/<int:product_id>/stock-movements", methods=["POST"])
-@blp.doc(**REQUIRES_LOGIN)
+@blp.doc(**REQUIRES_LOGIN, **ACCEPTS_IDEMPOTENCY_KEY)
 @auth_required(UserRole.ADMIN)
+@idempotent
 @blp.arguments(CreateStockMovementSchema)
 @blp.response(201, StockChangeSchema)
 @blp.alt_response(404, schema=ProblemSchema, description="No such product in your shop")

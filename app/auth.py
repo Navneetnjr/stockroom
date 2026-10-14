@@ -4,7 +4,7 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
-from flask import Flask, Response
+from flask import Flask, Response, current_app
 from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, verify_jwt_in_request
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -18,7 +18,7 @@ REQUIRES_LOGIN: dict[str, Any] = {"security": [{"bearerAuth": []}]}
 
 def hash_password(password: str) -> str:
     """Scramble a password one way, so the real password is never stored."""
-    return generate_password_hash(password)
+    return generate_password_hash(password, method=current_app.config["PASSWORD_HASH_METHOD"])
 
 
 def password_matches(password_hash: str, password: str) -> bool:

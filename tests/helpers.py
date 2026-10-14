@@ -3,7 +3,9 @@
 import os
 from typing import Any
 
+from alembic.config import Config as AlembicConfig
 from flask.testing import FlaskClient
+from werkzeug.test import TestResponse
 
 PASSWORD = "password123"
 
@@ -14,7 +16,16 @@ def settings_for_tests() -> dict[str, Any]:
         "TESTING": True,
         "SQLALCHEMY_DATABASE_URI": os.environ["TEST_DATABASE_URL"],
         "JWT_SECRET_KEY": "test-only-secret-key-that-is-long-enough-0123456789",
+        # Light password hashing: tests need speed, not protection against attackers
+        "PASSWORD_HASH_METHOD": "pbkdf2:sha256:1000",
     }
+
+
+def alembic_config() -> AlembicConfig:
+    """Alembic settings pointed at the test database."""
+    config = AlembicConfig("alembic.ini")
+    config.set_main_option("sqlalchemy.url", os.environ["TEST_DATABASE_URL"].replace("%", "%%"))
+    return config
 
 
 def register_shop(
@@ -57,3 +68,26 @@ def create_product(client: FlaskClient, admin_token: str, **fields: Any) -> dict
     assert response.status_code == 201, response.get_json()
     product: dict[str, Any] = response.get_json()
     return product
+
+
+def place_order(
+    client: FlaskClient, token: str, *lines: tuple[int, int], key: str | None = None
+) -> TestResponse:
+    """POST /orders with (product_id, quantity) lines, optionally with an Idempotency-Key."""
+    headers = auth_header(token)
+    if key:
+        headers["Idempotency-Key"] = key
+    body = {"lines": [{"product_id": pid, "quantity": qty} for pid, qty in lines]}
+    return client.post("/orders", json=body, headers=headers)
+
+
+def set_status(client: FlaskClient, token: str, order_id: int, status: str) -> TestResponse:
+    return client.post(
+        f"/orders/{order_id}/transitions", json={"status": status}, headers=auth_header(token)
+    )
+
+
+def stock_of(client: FlaskClient, token: str, product_id: int) -> int:
+    response = client.get(f"/products/{product_id}", headers=auth_header(token))
+    stock: int = response.get_json()["stock_on_hand"]
+    return stock
