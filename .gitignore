@@ -17,3 +17,6 @@ wheels/
 .mypy_cache/
 .ruff_cache/
 .coverage
+
+# Local PostgreSQL data folder (dev only)
+.pgdata/
