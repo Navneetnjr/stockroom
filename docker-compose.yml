@@ -16,10 +16,21 @@ x-app: &app
       condition: service_healthy
 
 services:
+  # Runs the migrations, then the web server (see docker/start-api.sh)
   api:
     <<: *app
     ports:
       - "8000:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz', timeout=3)"
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
 
   # Runs background jobs: CSV imports and webhook deliveries
   worker:
@@ -29,7 +40,8 @@ services:
   # Puts the scheduled stock reconciliation job on the queue
   beat:
     <<: *app
-    command: celery -A app.worker beat --loglevel=INFO
+    # The schedule file goes to /tmp: the container runs as a non-root user
+    command: celery -A app.worker beat --loglevel=INFO --schedule /tmp/celerybeat-schedule
 
   db:
     image: postgres:16
