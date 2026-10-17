@@ -4,9 +4,10 @@ from typing import Any, cast
 from flask import Blueprint, Flask
 
 from app import models  # noqa: F401  (registers every table with SQLAlchemy)
-from app.api import auth, health, orders, products, users
+from app.api import auth, health, orders, products, users, webhooks
 from app.auth import init_auth
 from app.cache import init_redis
+from app.celery_setup import celery_init_app
 from app.config import Config
 from app.errors import StockroomApi, register_error_handlers
 from app.extensions import db
@@ -41,10 +42,11 @@ def create_app(overrides: Mapping[str, Any] | None = None) -> Flask:
     init_auth(app)
     init_redis(app)
     init_rate_limiting(app)
+    celery_init_app(app)
 
     # The Api object collects every endpoint into the OpenAPI spec and the /docs page
     api = StockroomApi(app)
-    for module in (health, auth, users, products, orders):
+    for module in (health, auth, users, products, orders, webhooks):
         api.register_blueprint(module.blp)
     register_error_handlers(app)
 

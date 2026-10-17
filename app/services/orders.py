@@ -19,6 +19,7 @@ from app.errors import (
 )
 from app.extensions import db
 from app.models import MovementReason, Order, OrderLine, OrderStatus, Product
+from app.services import webhooks
 from app.services.products import apply_stock_change
 
 # The order state machine: which statuses an order may move to from each status.
@@ -181,9 +182,14 @@ def list_orders(
 
 
 def change_status(tenant_id: int, order_id: int, new_status: str) -> Order:
-    """Move an order to a new status. Cancelling puts its stock back."""
+    """Move an order to a new status. Cancelling puts its stock back.
+
+    If the tenant has a webhook, the change is saved as a delivery in the same transaction
+    and sent by a background task after the commit.
+    """
     order = get_order(tenant_id, order_id, lock=True)
-    ensure_transition_allowed(order.status, new_status)
+    previous_status = order.status
+    ensure_transition_allowed(previous_status, new_status)
 
     if new_status == OrderStatus.CANCELLED:
         products = _lock_products(
@@ -195,7 +201,10 @@ def change_status(tenant_id: int, order_id: int, new_status: str) -> Order:
             )
 
     order.status = new_status
+    delivery = webhooks.queue_order_event(order, previous_status)
     db.session.commit()
     if new_status == OrderStatus.CANCELLED:
         invalidate_products(tenant_id)  # stock came back
+    if delivery is not None:
+        webhooks.queue_delivery(delivery.id)
     return get_order(tenant_id, order_id)

@@ -43,6 +43,17 @@ def get_product(tenant_id: int, product_id: int, *, lock: bool = False) -> Produ
     return product
 
 
+def find_product_by_sku(tenant_id: int, sku: str) -> Product | None:
+    """The tenant's active product with this SKU, locked for a stock change (or None)."""
+    query = (
+        _active_products(tenant_id)
+        .where(Product.sku == sku)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    return db.session.scalar(query)
+
+
 def create_product(
     tenant_id: int, sku: str, name: str, price: Decimal, initial_stock: int
 ) -> Product:

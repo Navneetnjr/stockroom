@@ -21,6 +21,9 @@ def settings_for_tests() -> dict[str, Any]:
         # No real Redis in tests: cache tests plug in a fake one, rate limits count in memory
         "REDIS_URL": None,
         "RATELIMIT_STORAGE_URI": "memory://",
+        # Background jobs run straight away inside the test ("eager"), no worker needed
+        "CELERY_TASK_ALWAYS_EAGER": True,
+        "CELERY_BROKER_URL": "memory://",
     }
 
 

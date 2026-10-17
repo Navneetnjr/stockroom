@@ -91,6 +91,16 @@ def bind_identity(tenant_id: int, user_id: int) -> None:
     user_id_var.set(user_id)
 
 
+def current_request_id() -> str | None:
+    """The id of the current request, to hand on to background jobs and webhooks."""
+    return request_id_var.get()
+
+
+def bind_request_id(request_id: str | None) -> None:
+    """Continue the request id inside a background job (or start a new one)."""
+    request_id_var.set(request_id or uuid.uuid4().hex)
+
+
 def init_request_logging(app: Flask) -> None:
     """Give every request an id and write one log line when it finishes."""
 
