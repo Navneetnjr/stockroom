@@ -48,7 +48,7 @@ class Config:
 
     # Background jobs (Celery), with Redis as the queue. Without Redis (e.g. local development)
     # jobs run straight away inside the request instead of in a worker ("eager" mode).
-    CELERY_BROKER_URL = REDIS_URL or "memory://"
+    CELERY_BROKER_URL = REDIS_URL or "memory://localhost/"
     CELERY_TASK_ALWAYS_EAGER = (
         os.environ.get("CELERY_TASK_ALWAYS_EAGER", "false" if REDIS_URL else "true").lower()
         == "true"

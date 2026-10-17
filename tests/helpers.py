@@ -23,7 +23,7 @@ def settings_for_tests() -> dict[str, Any]:
         "RATELIMIT_STORAGE_URI": "memory://",
         # Background jobs run straight away inside the test ("eager"), no worker needed
         "CELERY_TASK_ALWAYS_EAGER": True,
-        "CELERY_BROKER_URL": "memory://",
+        "CELERY_BROKER_URL": "memory://localhost/",
     }
 
 

@@ -23,6 +23,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "celery-types>=0.26.0",
+    "factory-boy>=3.3.3",
     "fakeredis>=2.40.0",
     "mypy>=2.4.0",
     "pre-commit>=4.7.0",
@@ -54,6 +55,18 @@ files = ["app", "tests"]
 # flask-smorest ships without type hints
 module = ["flask_smorest", "flask_smorest.*"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# factory_boy's type hints are incomplete: let mypy see its public names...
+module = ["factory", "factory.*"]
+implicit_reexport = true
+
+[[tool.mypy.overrides]]
+# ...and allow its untyped helpers inside the factories file (tests use typed make_* wrappers)
+module = ["tests.factories"]
+disallow_untyped_calls = false
+disallow_untyped_decorators = false
+disallow_subclassing_any = false
 
 [[tool.mypy.overrides]]
 # These modules use flask-smorest's untyped decorators and base classes
