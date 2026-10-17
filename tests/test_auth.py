@@ -6,7 +6,9 @@ from flask.testing import FlaskClient
 from flask_jwt_extended import create_access_token
 
 from app.errors import PROBLEM_CONTENT_TYPE
+from app.models import UserRole
 from app.services import accounts
+from tests.factories import make_user
 from tests.helpers import PASSWORD, auth_header, login, register_shop
 
 SIGNUP = {"shop_name": "Shoe Shop", "email": "Owner@Shoe.test", "password": PASSWORD}
@@ -59,6 +61,16 @@ def test_register_with_bad_input_returns_422_with_field_errors(client: FlaskClie
     body = response.get_json()
     assert body["title"] == "Unprocessable Entity"
     assert set(body["errors"]["json"]) == {"shop_name", "email", "password"}
+
+
+def test_user_seeded_by_a_factory_can_log_in(app: Flask, client: FlaskClient) -> None:
+    with app.app_context():
+        user = make_user(email="seeded@shop.test", role=UserRole.STAFF)
+        tenant_id = user.tenant_id
+
+    response = client.get("/auth/me", headers=auth_header(login(client, "seeded@shop.test")))
+
+    assert response.get_json() | {"role": "staff", "tenant_id": tenant_id} == response.get_json()
 
 
 def test_login_returns_token_that_works_on_me(client: FlaskClient) -> None:

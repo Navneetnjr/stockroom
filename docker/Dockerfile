@@ -14,7 +14,16 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
+# Our code, plus the migrations the API runs at start-up
+COPY alembic.ini ./
+COPY migrations ./migrations
 COPY app ./app
+COPY docker/start-api.sh ./docker/start-api.sh
+
+# Don't run as root inside the container
+RUN useradd --create-home --uid 1000 stockroom
+USER stockroom
 
 EXPOSE 8000
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "app:create_app()"]
+# The API: run migrations, then gunicorn. The worker and beat containers override this.
+CMD ["sh", "docker/start-api.sh"]
