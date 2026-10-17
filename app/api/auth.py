@@ -6,6 +6,7 @@ from app.auth import REQUIRES_LOGIN, auth_required, create_token_for, current_us
 from app.errors import ProblemSchema
 from app.extensions import db
 from app.models import Tenant, User
+from app.rate_limiting import auth_limit, limiter
 from app.schemas.accounts import LoginSchema, RegisterSchema, TokenSchema, UserSchema
 from app.services import accounts
 
@@ -22,9 +23,11 @@ def _token_response(user: User) -> dict[str, Any]:
 
 
 @blp.route("/register", methods=["POST"])
+@limiter.limit(auth_limit)
 @blp.arguments(RegisterSchema)
 @blp.response(201, TokenSchema)
 @blp.alt_response(409, schema=ProblemSchema, description="Email already registered")
+@blp.alt_response(429, schema=ProblemSchema, description="Too many attempts from this address")
 def register(data: dict[str, str]) -> dict[str, Any]:
     """Register a new shop
 
@@ -35,9 +38,11 @@ def register(data: dict[str, str]) -> dict[str, Any]:
 
 
 @blp.route("/login", methods=["POST"])
+@limiter.limit(auth_limit)
 @blp.arguments(LoginSchema)
 @blp.response(200, TokenSchema)
 @blp.alt_response(401, schema=ProblemSchema, description="Wrong email or password")
+@blp.alt_response(429, schema=ProblemSchema, description="Too many attempts from this address")
 def login(data: dict[str, str]) -> dict[str, Any]:
     """Log in
 

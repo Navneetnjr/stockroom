@@ -18,6 +18,9 @@ def settings_for_tests() -> dict[str, Any]:
         "JWT_SECRET_KEY": "test-only-secret-key-that-is-long-enough-0123456789",
         # Light password hashing: tests need speed, not protection against attackers
         "PASSWORD_HASH_METHOD": "pbkdf2:sha256:1000",
+        # No real Redis in tests: cache tests plug in a fake one, rate limits count in memory
+        "REDIS_URL": None,
+        "RATELIMIT_STORAGE_URI": "memory://",
     }
 
 

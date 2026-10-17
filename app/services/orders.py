@@ -10,6 +10,7 @@ from decimal import Decimal
 from sqlalchemy import Select, literal, select, tuple_
 from sqlalchemy.orm import selectinload
 
+from app.cache import invalidate_products
 from app.errors import (
     InsufficientStockError,
     InvalidCursorError,
@@ -154,6 +155,7 @@ def place_order(tenant_id: int, user_id: int, lines: list[dict[str, int]]) -> Or
         order.total += amount
 
     db.session.commit()  # the order, its lines and its stock movements are saved together
+    invalidate_products(tenant_id)  # stock changed, so cached product reads are stale
     return get_order(tenant_id, order.id)
 
 
@@ -194,4 +196,6 @@ def change_status(tenant_id: int, order_id: int, new_status: str) -> Order:
 
     order.status = new_status
     db.session.commit()
+    if new_status == OrderStatus.CANCELLED:
+        invalidate_products(tenant_id)  # stock came back
     return get_order(tenant_id, order_id)

@@ -1,8 +1,10 @@
 from typing import Any
 
+from flask import Response, jsonify
 from flask_smorest import Blueprint
 
 from app.auth import REQUIRES_LOGIN, auth_required, current_tenant_id
+from app.cache import cached_product_data
 from app.errors import ProblemSchema
 from app.idempotency import ACCEPTS_IDEMPOTENCY_KEY, idempotent
 from app.models import Product, StockMovement, UserRole
@@ -19,16 +21,27 @@ from app.services import products
 blp = Blueprint("products", __name__, url_prefix="/products", description="Products and stock")
 
 
+def _json(data: Any, from_cache: bool) -> Response:
+    """Send already-serialised data; X-Cache tells whether Redis answered (HIT) or not (MISS)."""
+    response = jsonify(data)
+    response.headers["X-Cache"] = "HIT" if from_cache else "MISS"
+    return response
+
+
 @blp.route("", methods=["GET"])
 @blp.doc(**REQUIRES_LOGIN)
 @auth_required()
 @blp.response(200, ProductSchema(many=True))
-def list_products() -> list[Product]:
+def list_products() -> Response:
     """List products
 
-    All products of your shop that are not deleted.
+    All products of your shop that are not deleted. Served from the Redis cache when possible.
     """
-    return products.list_products(current_tenant_id())
+    tenant_id = current_tenant_id()
+    data, from_cache = cached_product_data(
+        tenant_id, "list", lambda: ProductSchema(many=True).dump(products.list_products(tenant_id))
+    )
+    return _json(data, from_cache)
 
 
 @blp.route("", methods=["POST"])
@@ -53,9 +66,18 @@ def create_product(data: dict[str, Any]) -> Product:
 @auth_required()
 @blp.response(200, ProductSchema)
 @blp.alt_response(404, schema=ProblemSchema, description="No such product in your shop")
-def get_product(product_id: int) -> Product:
-    """Get a product"""
-    return products.get_product(current_tenant_id(), product_id)
+def get_product(product_id: int) -> Response:
+    """Get a product
+
+    Served from the Redis cache when possible.
+    """
+    tenant_id = current_tenant_id()
+    data, from_cache = cached_product_data(
+        tenant_id,
+        f"product:{product_id}",
+        lambda: ProductSchema().dump(products.get_product(tenant_id, product_id)),
+    )
+    return _json(data, from_cache)
 
 
 @blp.route("/<int:product_id>", methods=["PATCH"])
