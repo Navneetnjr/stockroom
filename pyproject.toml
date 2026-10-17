@@ -8,3 +8,31 @@ dependencies = [
     "flask>=3.1.3",
     "gunicorn>=26.2.0",
 ]
+
+[dependency-groups]
+dev = [
+    "mypy>=2.4.0",
+    "pre-commit>=4.7.0",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.17.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# E/W = PEP 8 style, F = real mistakes, I = import order,
+# B = likely bugs, UP = modern Python syntax, N = PEP 8 naming
+select = ["E", "W", "F", "I", "B", "UP", "N"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["app", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "--cov=app --cov-report=term-missing"
