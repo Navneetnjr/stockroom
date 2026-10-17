@@ -6,6 +6,7 @@ from typing import Any
 
 from sqlalchemy import Select, select
 
+from app.cache import invalidate_products
 from app.errors import ConflictError, InsufficientStockError, NotFoundError
 from app.extensions import db
 from app.models import MovementReason, Product, StockMovement
@@ -54,6 +55,7 @@ def create_product(
     if initial_stock > 0:
         apply_stock_change(product, initial_stock, MovementReason.INITIAL)
     commit_or_conflict(_sku_conflict(sku))
+    invalidate_products(tenant_id)
     return product
 
 
@@ -66,6 +68,7 @@ def update_product(tenant_id: int, product_id: int, changes: dict[str, Any]) -> 
     for field, value in changes.items():
         setattr(product, field, value)
     commit_or_conflict(_sku_conflict(new_sku or product.sku))
+    invalidate_products(tenant_id)
     return product
 
 
@@ -74,6 +77,7 @@ def delete_product(tenant_id: int, product_id: int) -> None:
     product = get_product(tenant_id, product_id)
     product.deleted_at = datetime.now(UTC)
     db.session.commit()
+    invalidate_products(tenant_id)
 
 
 def apply_stock_change(
@@ -107,6 +111,7 @@ def record_stock_movement(
     product = get_product(tenant_id, product_id, lock=True)
     movement = apply_stock_change(product, quantity, reason)
     db.session.commit()
+    invalidate_products(tenant_id)
     return movement, product
 
 

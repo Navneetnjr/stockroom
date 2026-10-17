@@ -33,6 +33,19 @@ class Config:
         }
     }
 
+    # Redis: product cache and rate-limit counters. Optional: without it the cache is skipped
+    # and rate limits are counted in memory (fine for one process, e.g. local development).
+    REDIS_URL: str | None = os.environ.get("REDIS_URL")
+    CACHE_TTL_SECONDS = int(os.environ.get("CACHE_TTL_SECONDS", "60"))
+
+    # Rate limits, counted per tenant (or per IP address when not logged in) and per endpoint
+    RATE_LIMIT_DEFAULT = os.environ.get("RATE_LIMIT_DEFAULT", "300 per minute")
+    RATE_LIMIT_AUTH = os.environ.get("RATE_LIMIT_AUTH", "10 per minute")  # login and sign-up
+    RATELIMIT_STORAGE_URI = REDIS_URL or "memory://"
+    RATELIMIT_KEY_PREFIX = "stockroom"
+    RATELIMIT_HEADERS_ENABLED = True  # X-RateLimit-* and Retry-After headers
+    RATELIMIT_SWALLOW_ERRORS = True  # if Redis is down, let requests through rather than fail
+
     # Logging: JSON lines on stdout; queries slower than SLOW_QUERY_MS are logged with their SQL
     LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
     SLOW_QUERY_MS = float(os.environ.get("SLOW_QUERY_MS", "200"))

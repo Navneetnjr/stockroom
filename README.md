@@ -61,6 +61,17 @@ Roles: the user who registers a shop is an **admin**. Admins can add **staff** u
 - `POST /orders/{id}/transitions` moves an order: `draft → confirmed → shipped → delivered`,
   or `cancelled` from `draft`/`confirmed` (which puts the stock back).
 
+### Caching and rate limits (Redis)
+
+- `GET /products` and `GET /products/{id}` are cached in Redis for `CACHE_TTL_SECONDS`
+  (cache-aside). The `X-Cache` response header says `HIT` or `MISS`. Any change to a tenant's
+  products or stock (including orders and cancellations) invalidates that tenant's cache.
+- Requests are rate limited per tenant and per endpoint (`RATE_LIMIT_DEFAULT`); login and
+  sign-up are limited per IP address (`RATE_LIMIT_AUTH`). Over the limit: `429` with
+  `Retry-After`. Every response carries `X-RateLimit-Limit` / `X-RateLimit-Remaining`.
+- Redis is optional for local development: without `REDIS_URL` the cache is skipped and limits
+  are counted in memory.
+
 ### Safe retries (Idempotency-Key)
 
 Every `POST` that creates something accepts an `Idempotency-Key` header. Sending the same

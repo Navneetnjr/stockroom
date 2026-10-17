@@ -1,15 +1,17 @@
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
-from flask import Flask
+from flask import Blueprint, Flask
 
 from app import models  # noqa: F401  (registers every table with SQLAlchemy)
 from app.api import auth, health, orders, products, users
 from app.auth import init_auth
+from app.cache import init_redis
 from app.config import Config
 from app.errors import StockroomApi, register_error_handlers
 from app.extensions import db
 from app.observability import configure_logging, enable_slow_query_logging, init_request_logging
+from app.rate_limiting import init_rate_limiting, limiter
 
 REQUIRED_SETTINGS = {
     "SQLALCHEMY_DATABASE_URI": "DATABASE_URL",
@@ -37,11 +39,17 @@ def create_app(overrides: Mapping[str, Any] | None = None) -> Flask:
 
     db.init_app(app)
     init_auth(app)
+    init_redis(app)
+    init_rate_limiting(app)
 
     # The Api object collects every endpoint into the OpenAPI spec and the /docs page
     api = StockroomApi(app)
     for module in (health, auth, users, products, orders):
         api.register_blueprint(module.blp)
     register_error_handlers(app)
+
+    # Health checks and the docs page are never rate limited (monitors call them often)
+    limiter.exempt(health.blp)
+    limiter.exempt(cast(Blueprint, app.blueprints["api-docs"]))
 
     return app

@@ -20,7 +20,7 @@ def test_readyz_returns_ok_when_database_is_up(client: FlaskClient) -> None:
     response = client.get("/readyz")
 
     assert response.status_code == 200
-    assert response.get_json() == {"status": "ok", "database": "up"}
+    assert response.get_json() == {"status": "ok", "database": "up", "redis": "not configured"}
 
 
 def test_readyz_returns_503_when_database_is_down(
@@ -35,7 +35,11 @@ def test_readyz_returns_503_when_database_is_down(
     response = client.get("/readyz")
 
     assert response.status_code == 503
-    assert response.get_json() == {"status": "unavailable", "database": "down"}
+    assert response.get_json() == {
+        "status": "unavailable",
+        "database": "down",
+        "redis": "not configured",
+    }
 
 
 def test_create_app_fails_without_database_url() -> None:

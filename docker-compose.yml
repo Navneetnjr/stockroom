@@ -6,6 +6,7 @@ services:
     environment:
       # Inside Docker the database host is the service name "db", not localhost
       DATABASE_URL: postgresql+psycopg://stockroom:stockroom@db:5432/stockroom
+      REDIS_URL: redis://redis:6379/0
       # Taken from your shell/.env if set; the fallback is for local use only
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-local-dev-only-secret-change-me-0123456789abcdef}
     ports:

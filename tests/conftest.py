@@ -8,6 +8,7 @@ from sqlalchemy import text
 
 from app import create_app
 from app.extensions import Base, db
+from app.rate_limiting import limiter
 from tests.helpers import alembic_config, settings_for_tests
 
 
@@ -33,6 +34,7 @@ def _clean_tables(app: Flask) -> Iterator[None]:
         table_names = ", ".join(table.name for table in Base.metadata.sorted_tables)
         db.session.execute(text(f"TRUNCATE {table_names} RESTART IDENTITY CASCADE"))
         db.session.commit()
+    limiter.reset()  # forget rate-limit counts too
 
 
 @pytest.fixture
