@@ -40,3 +40,8 @@ def test_readyz_returns_503_when_database_is_down(
 def test_create_app_fails_without_database_url() -> None:
     with pytest.raises(RuntimeError, match="DATABASE_URL is not set"):
         create_app({"SQLALCHEMY_DATABASE_URI": None})
+
+
+def test_create_app_fails_without_jwt_secret() -> None:
+    with pytest.raises(RuntimeError, match="JWT_SECRET_KEY is not set"):
+        create_app({"JWT_SECRET_KEY": None})

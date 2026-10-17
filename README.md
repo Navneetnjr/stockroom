@@ -29,8 +29,28 @@ Stop everything with `Ctrl+C`, or `docker compose down` (add `-v` to also delete
 
 ```bash
 uv sync
+uv run alembic upgrade head
 uv run flask --app app run --port 8000 --debug
 ```
+
+## API documentation
+
+Generated automatically from the code:
+
+- Interactive docs (Swagger UI): http://localhost:8000/docs
+- OpenAPI spec (JSON): http://localhost:8000/openapi.json
+
+Every error response uses the RFC 9457 "problem details" format
+(`application/problem+json`) with `type`, `title`, `status`, `detail` and `instance`.
+
+### Trying it on /docs
+
+1. `POST /auth/register` with a shop name, email and password. You get back an `access_token`.
+2. Click **Authorize** (top right) and paste the token.
+3. Call any protected endpoint, e.g. `GET /auth/me`.
+
+Roles: the user who registers a shop is an **admin**. Admins can add **staff** users with
+`POST /users`. Staff cannot manage users.
 
 ## Checks and tests
 

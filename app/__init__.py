@@ -4,9 +4,16 @@ from typing import Any
 from flask import Flask
 
 from app import models  # noqa: F401  (registers every table with SQLAlchemy)
-from app.api.health import health_bp
+from app.api import auth, health, users
+from app.auth import init_auth
 from app.config import Config
+from app.errors import StockroomApi, register_error_handlers
 from app.extensions import db
+
+REQUIRED_SETTINGS = {
+    "SQLALCHEMY_DATABASE_URI": "DATABASE_URL",
+    "JWT_SECRET_KEY": "JWT_SECRET_KEY",
+}
 
 
 def create_app(overrides: Mapping[str, Any] | None = None) -> Flask:
@@ -19,9 +26,17 @@ def create_app(overrides: Mapping[str, Any] | None = None) -> Flask:
     if overrides:
         app.config.update(overrides)
 
-    if not app.config.get("SQLALCHEMY_DATABASE_URI"):
-        raise RuntimeError("DATABASE_URL is not set. Copy .env.example to .env and fill it in.")
+    for setting, env_var in REQUIRED_SETTINGS.items():
+        if not app.config.get(setting):
+            raise RuntimeError(f"{env_var} is not set. Copy .env.example to .env and fill it in.")
 
     db.init_app(app)
-    app.register_blueprint(health_bp)
+    init_auth(app)
+
+    # The Api object collects every endpoint into the OpenAPI spec and the /docs page
+    api = StockroomApi(app)
+    for module in (health, auth, users):
+        api.register_blueprint(module.blp)
+    register_error_handlers(app)
+
     return app
