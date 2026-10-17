@@ -1,12 +1,12 @@
 """Tenants and users: sign-up, login and adding users."""
 
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 
 from app.auth import hash_password, password_matches
 from app.errors import ConflictError, UnauthorizedError
 from app.extensions import db
 from app.models import Tenant, User, UserRole
+from app.services.common import commit_or_conflict
 
 
 def _normalize_email(email: str) -> str:
@@ -34,7 +34,7 @@ def register_tenant(shop_name: str, email: str, password: str) -> User:
         role=UserRole.ADMIN,
     )
     db.session.add(admin)
-    _commit_or_conflict(email)
+    commit_or_conflict(f"The email {email} is already registered.")
     return admin
 
 
@@ -46,7 +46,7 @@ def create_user(tenant_id: int, email: str, password: str, role: str) -> User:
 
     user = User(tenant_id=tenant_id, email=email, password_hash=hash_password(password), role=role)
     db.session.add(user)
-    _commit_or_conflict(email)
+    commit_or_conflict(f"The email {email} is already registered.")
     return user
 
 
@@ -63,12 +63,3 @@ def list_users(tenant_id: int) -> list[User]:
     return list(
         db.session.scalars(select(User).where(User.tenant_id == tenant_id).order_by(User.id))
     )
-
-
-def _commit_or_conflict(email: str) -> None:
-    """Save, turning a duplicate email (two sign-ups at the same moment) into a 409."""
-    try:
-        db.session.commit()
-    except IntegrityError as error:
-        db.session.rollback()
-        raise ConflictError(f"The email {email} is already registered.") from error

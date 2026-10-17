@@ -59,6 +59,12 @@ class ConflictError(ApiError):
     title = "Conflict"
 
 
+class InsufficientStockError(ApiError):
+    status = 409
+    title = "Insufficient stock"
+    problem_type = "/problems/insufficient-stock"
+
+
 def problem_response(
     status: int,
     title: str,
