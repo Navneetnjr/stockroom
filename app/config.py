@@ -33,6 +33,10 @@ class Config:
         }
     }
 
+    # Logging: JSON lines on stdout; queries slower than SLOW_QUERY_MS are logged with their SQL
+    LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+    SLOW_QUERY_MS = float(os.environ.get("SLOW_QUERY_MS", "200"))
+
     # How passwords are scrambled (werkzeug format). scrypt is strong but uses ~32 MB per hash;
     # tests switch to a light setting to run fast on small machines.
     PASSWORD_HASH_METHOD = os.environ.get("PASSWORD_HASH_METHOD", "scrypt")

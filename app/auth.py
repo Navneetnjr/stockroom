@@ -11,6 +11,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from app.errors import ForbiddenError, problem_response
 from app.extensions import jwt
 from app.models import User
+from app.observability import bind_identity
 
 # Tells /docs that an endpoint needs the "Authorize" token: use as @blp.doc(**REQUIRES_LOGIN)
 REQUIRES_LOGIN: dict[str, Any] = {"security": [{"bearerAuth": []}]}
@@ -50,6 +51,7 @@ def auth_required[**P, R](*roles: str) -> Callable[[Callable[P, R]], Callable[P,
         @wraps(view)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             verify_jwt_in_request()
+            bind_identity(current_tenant_id(), current_user_id())  # adds who to the logs
             if roles and get_jwt().get("role") not in roles:
                 raise ForbiddenError(f"This action needs one of these roles: {', '.join(roles)}.")
             return view(*args, **kwargs)

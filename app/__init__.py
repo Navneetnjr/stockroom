@@ -9,6 +9,7 @@ from app.auth import init_auth
 from app.config import Config
 from app.errors import StockroomApi, register_error_handlers
 from app.extensions import db
+from app.observability import configure_logging, enable_slow_query_logging, init_request_logging
 
 REQUIRED_SETTINGS = {
     "SQLALCHEMY_DATABASE_URI": "DATABASE_URL",
@@ -29,6 +30,10 @@ def create_app(overrides: Mapping[str, Any] | None = None) -> Flask:
     for setting, env_var in REQUIRED_SETTINGS.items():
         if not app.config.get(setting):
             raise RuntimeError(f"{env_var} is not set. Copy .env.example to .env and fill it in.")
+
+    configure_logging(app.config["LOG_LEVEL"])
+    init_request_logging(app)
+    enable_slow_query_logging(app.config["SLOW_QUERY_MS"])
 
     db.init_app(app)
     init_auth(app)
