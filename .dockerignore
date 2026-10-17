@@ -10,3 +10,4 @@
 
 # Local PostgreSQL data folder (dev only)
 .pgdata/
+.pgdata.log

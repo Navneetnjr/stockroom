@@ -6,6 +6,7 @@ from sqlalchemy.exc import OperationalError
 
 from app import create_app
 from app.extensions import db
+from tests.helpers import settings_for_tests
 
 
 def test_healthz_returns_ok(client: FlaskClient) -> None:
@@ -43,5 +44,8 @@ def test_create_app_fails_without_database_url() -> None:
 
 
 def test_create_app_fails_without_jwt_secret() -> None:
+    # Give a database URL so only the missing secret is tested (CI has no .env file)
+    settings = settings_for_tests() | {"JWT_SECRET_KEY": None}
+
     with pytest.raises(RuntimeError, match="JWT_SECRET_KEY is not set"):
-        create_app({"JWT_SECRET_KEY": None})
+        create_app(settings)
