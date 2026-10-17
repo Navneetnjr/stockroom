@@ -2,21 +2,24 @@ from typing import Any
 
 from flask import Response, jsonify
 from flask_smorest import Blueprint
+from werkzeug.datastructures import FileStorage
 
-from app.auth import REQUIRES_LOGIN, auth_required, current_tenant_id
+from app.auth import REQUIRES_LOGIN, auth_required, current_tenant_id, current_user_id
 from app.cache import cached_product_data
 from app.errors import ProblemSchema
 from app.idempotency import ACCEPTS_IDEMPOTENCY_KEY, idempotent
-from app.models import Product, StockMovement, UserRole
+from app.models import ImportJob, Product, StockMovement, UserRole
 from app.schemas.products import (
     CreateProductSchema,
     CreateStockMovementSchema,
+    ImportJobSchema,
+    ImportUploadSchema,
     ProductSchema,
     StockChangeSchema,
     StockMovementSchema,
     UpdateProductSchema,
 )
-from app.services import products
+from app.services import imports, products
 
 blp = Blueprint("products", __name__, url_prefix="/products", description="Products and stock")
 
@@ -139,3 +142,42 @@ def add_stock_movement(data: dict[str, Any], product_id: int) -> dict[str, Any]:
         current_tenant_id(), product_id, data["quantity"], data["reason"]
     )
     return {"movement": movement, "product": product}
+
+
+@blp.route("/imports", methods=["POST"])
+@blp.doc(**REQUIRES_LOGIN, **ACCEPTS_IDEMPOTENCY_KEY)
+@auth_required(UserRole.ADMIN)
+@idempotent
+@blp.arguments(ImportUploadSchema, location="files")
+@blp.response(202, ImportJobSchema)
+@blp.alt_response(400, schema=ProblemSchema, description="Not a valid CSV file")
+@blp.alt_response(503, schema=ProblemSchema, description="Background workers unavailable")
+def start_import(files: dict[str, FileStorage]) -> tuple[ImportJob, dict[str, str]]:
+    """Import products from CSV
+
+    Upload a CSV file with the columns `sku,name,price[,stock]`. The file is checked and
+    saved, and **202 Accepted** comes back at once with a job id; a background worker then
+    creates or updates the products. Follow the `Location` header (or
+    `GET /products/imports/{job_id}`) to see the result, including every row that failed.
+    Re-importing the same file changes nothing. **Admin only.**
+    """
+    upload = files["file"]
+    job = imports.start_import(
+        current_tenant_id(), current_user_id(), upload.filename or "upload.csv", upload.read()
+    )
+    imports.queue_import(job)
+    return job, {"Location": f"/products/imports/{job.id}"}
+
+
+@blp.route("/imports/<int:job_id>", methods=["GET"])
+@blp.doc(**REQUIRES_LOGIN)
+@auth_required(UserRole.ADMIN)
+@blp.response(200, ImportJobSchema)
+@blp.alt_response(404, schema=ProblemSchema, description="No such import in your shop")
+def get_import(job_id: int) -> ImportJob:
+    """Import status
+
+    Whether the import has finished, how many rows succeeded or failed, and why each failed
+    row was rejected. **Admin only.**
+    """
+    return imports.get_import(current_tenant_id(), job_id)

@@ -1,7 +1,8 @@
 from decimal import Decimal
 from typing import Any
 
-from marshmallow import Schema, ValidationError, fields, validate, validates_schema
+from flask_smorest.fields import Upload
+from marshmallow import EXCLUDE, Schema, ValidationError, fields, validate, validates_schema
 
 from app.models import MovementReason
 
@@ -67,3 +68,33 @@ class CreateStockMovementSchema(Schema):
 class StockChangeSchema(Schema):
     movement = fields.Nested(StockMovementSchema)
     product = fields.Nested(ProductSchema)
+
+
+class ImportUploadSchema(Schema):
+    file = Upload(
+        required=True, metadata={"description": "CSV with columns sku,name,price[,stock]"}
+    )
+
+
+class ImportRowSchema(Schema):
+    """One CSV row. Extra columns are ignored."""
+
+    class Meta:
+        unknown = EXCLUDE
+
+    sku = fields.String(required=True, validate=validate.Length(min=1, max=64))
+    name = fields.String(required=True, validate=validate.Length(min=1, max=200))
+    price = fields.Decimal(places=2, required=True, validate=PRICE_RULES)
+    stock = fields.Integer(validate=validate.Range(min=0))
+
+
+class ImportJobSchema(Schema):
+    id = fields.Integer(dump_only=True)
+    status = fields.String(dump_only=True, metadata={"description": "pending, processing, ..."})
+    filename = fields.String(dump_only=True)
+    total_rows = fields.Integer(dump_only=True)
+    succeeded_rows = fields.Integer(dump_only=True)
+    failed_rows = fields.Integer(dump_only=True)
+    errors = fields.List(fields.Dict(), dump_only=True, metadata={"description": "Failed rows"})
+    created_at = fields.DateTime(dump_only=True)
+    finished_at = fields.DateTime(dump_only=True, allow_none=True)

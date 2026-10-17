@@ -46,6 +46,23 @@ class Config:
     RATELIMIT_HEADERS_ENABLED = True  # X-RateLimit-* and Retry-After headers
     RATELIMIT_SWALLOW_ERRORS = True  # if Redis is down, let requests through rather than fail
 
+    # Background jobs (Celery), with Redis as the queue. Without Redis (e.g. local development)
+    # jobs run straight away inside the request instead of in a worker ("eager" mode).
+    CELERY_BROKER_URL = REDIS_URL or "memory://"
+    CELERY_TASK_ALWAYS_EAGER = (
+        os.environ.get("CELERY_TASK_ALWAYS_EAGER", "false" if REDIS_URL else "true").lower()
+        == "true"
+    )
+    # Webhooks: give up after this many attempts, waiting 2 s, 4 s, 8 s, ... in between
+    WEBHOOK_MAX_ATTEMPTS = int(os.environ.get("WEBHOOK_MAX_ATTEMPTS", "5"))
+    WEBHOOK_BACKOFF_SECONDS = float(os.environ.get("WEBHOOK_BACKOFF_SECONDS", "2"))
+    WEBHOOK_TIMEOUT_SECONDS = float(os.environ.get("WEBHOOK_TIMEOUT_SECONDS", "5"))
+    # How often the stock reconciliation job runs
+    RECONCILE_INTERVAL_SECONDS = int(os.environ.get("RECONCILE_INTERVAL_SECONDS", "900"))
+    # CSV imports: largest upload and number of rows accepted
+    MAX_CONTENT_LENGTH = 5 * 1024 * 1024
+    IMPORT_MAX_ROWS = 10_000
+
     # Logging: JSON lines on stdout; queries slower than SLOW_QUERY_MS are logged with their SQL
     LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
     SLOW_QUERY_MS = float(os.environ.get("SLOW_QUERY_MS", "200"))

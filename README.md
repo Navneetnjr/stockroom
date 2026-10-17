@@ -72,6 +72,40 @@ Roles: the user who registers a shop is an **admin**. Admins can add **staff** u
 - Redis is optional for local development: without `REDIS_URL` the cache is skipped and limits
   are counted in memory.
 
+### Background jobs (Celery)
+
+Two extra processes run alongside the API (both started by `docker compose up`):
+
+```bash
+celery -A app.worker worker --loglevel=INFO   # runs jobs
+celery -A app.worker beat --loglevel=INFO     # schedules the reconciliation job
+```
+
+- **CSV import:** `POST /products/imports` (multipart field `file`, columns `sku,name,price[,stock]`)
+  returns `202 Accepted` with a job id and a `Location` header. `GET /products/imports/{id}`
+  shows the result, with one entry per failed row. Re-importing the same file changes nothing.
+- **Webhooks:** set your URL with `PUT /webhooks/config`. Every order status change is POSTed
+  as JSON, retried after 2 s, 4 s, 8 s, … and moved to the `webhook_dead_letters` table after
+  `WEBHOOK_MAX_ATTEMPTS`. `GET /webhooks/deliveries` shows recent deliveries.
+- **Reconciliation:** every `RECONCILE_INTERVAL_SECONDS`, a job checks that each product's
+  `stock_on_hand` equals the sum of its stock ledger, and logs an ERROR for any drift.
+- Without Redis (local development), jobs run immediately inside the request instead.
+
+**Verifying a webhook** (receiver side):
+
+```python
+expected = (
+    "sha256="
+    + hmac.new(
+        secret.encode(), f"{headers['X-Stockroom-Timestamp']}.{raw_body}".encode(), hashlib.sha256
+    ).hexdigest()
+)
+valid = hmac.compare_digest(expected, headers["X-Stockroom-Signature"])
+```
+
+Use `X-Stockroom-Event-Id` to ignore duplicates (a retried event keeps its id). The request id
+of the API call that caused the event is sent as `X-Request-ID`.
+
 ### Safe retries (Idempotency-Key)
 
 Every `POST` that creates something accepts an `Idempotency-Key` header. Sending the same

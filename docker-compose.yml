@@ -1,21 +1,35 @@
+# Settings shared by the three containers that run our code (same image, different commands)
+x-app: &app
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+  environment:
+    # Inside Docker, other services are reached by their service name, not localhost
+    DATABASE_URL: postgresql+psycopg://stockroom:stockroom@db:5432/stockroom
+    REDIS_URL: redis://redis:6379/0
+    # Taken from your shell/.env if set; the fallback is for local use only
+    JWT_SECRET_KEY: ${JWT_SECRET_KEY:-local-dev-only-secret-change-me-0123456789abcdef}
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
 services:
   api:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
-    environment:
-      # Inside Docker the database host is the service name "db", not localhost
-      DATABASE_URL: postgresql+psycopg://stockroom:stockroom@db:5432/stockroom
-      REDIS_URL: redis://redis:6379/0
-      # Taken from your shell/.env if set; the fallback is for local use only
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-local-dev-only-secret-change-me-0123456789abcdef}
+    <<: *app
     ports:
       - "8000:8000"
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+
+  # Runs background jobs: CSV imports and webhook deliveries
+  worker:
+    <<: *app
+    command: celery -A app.worker worker --loglevel=INFO
+
+  # Puts the scheduled stock reconciliation job on the queue
+  beat:
+    <<: *app
+    command: celery -A app.worker beat --loglevel=INFO
 
   db:
     image: postgres:16
