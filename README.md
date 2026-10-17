@@ -50,7 +50,22 @@ Every error response uses the RFC 9457 "problem details" format
 3. Call any protected endpoint, e.g. `GET /auth/me`.
 
 Roles: the user who registers a shop is an **admin**. Admins can add **staff** users with
-`POST /users`. Staff cannot manage users.
+`POST /users`. Staff cannot manage users or products, but can place and manage orders.
+
+### Orders
+
+- `POST /orders` checks stock and creates the order (status `draft`) together with its stock
+  movements in one transaction. Product rows are locked (`SELECT ... FOR UPDATE`), so parallel
+  orders can never oversell.
+- `GET /orders` is paginated with a cursor: pass `next_cursor` from one page as `?cursor=`.
+- `POST /orders/{id}/transitions` moves an order: `draft → confirmed → shipped → delivered`,
+  or `cancelled` from `draft`/`confirmed` (which puts the stock back).
+
+### Safe retries (Idempotency-Key)
+
+Every `POST` that creates something accepts an `Idempotency-Key` header. Sending the same
+request again with the same key returns the first response (with `Idempotent-Replayed: true`)
+instead of creating a duplicate. Reusing a key for a different request returns 422.
 
 ## Checks and tests
 

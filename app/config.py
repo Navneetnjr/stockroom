@@ -33,6 +33,10 @@ class Config:
         }
     }
 
+    # How passwords are scrambled (werkzeug format). scrypt is strong but uses ~32 MB per hash;
+    # tests switch to a light setting to run fast on small machines.
+    PASSWORD_HASH_METHOD = os.environ.get("PASSWORD_HASH_METHOD", "scrypt")
+
     # Login tokens (JWT): signed with this secret, valid for 8 hours
     JWT_SECRET_KEY: str | None = os.environ.get("JWT_SECRET_KEY")
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=8)

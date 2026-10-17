@@ -2,6 +2,7 @@ from flask_smorest import Blueprint
 
 from app.auth import REQUIRES_LOGIN, auth_required, current_tenant_id
 from app.errors import ProblemSchema
+from app.idempotency import ACCEPTS_IDEMPOTENCY_KEY, idempotent
 from app.models import User, UserRole
 from app.schemas.accounts import CreateUserSchema, UserSchema
 from app.services import accounts
@@ -23,8 +24,9 @@ def list_users() -> list[User]:
 
 
 @blp.route("", methods=["POST"])
-@blp.doc(**REQUIRES_LOGIN)
+@blp.doc(**REQUIRES_LOGIN, **ACCEPTS_IDEMPOTENCY_KEY)
 @auth_required(UserRole.ADMIN)
+@idempotent
 @blp.arguments(CreateUserSchema)
 @blp.response(201, UserSchema)
 @blp.alt_response(403, schema=ProblemSchema, description="Only admins can do this")

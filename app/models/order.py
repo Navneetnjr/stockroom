@@ -1,7 +1,7 @@
 from decimal import Decimal
 from enum import StrEnum
 
-from sqlalchemy import CheckConstraint, ForeignKey, Numeric, String
+from sqlalchemy import CheckConstraint, ForeignKey, Index, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.extensions import Base
@@ -26,6 +26,8 @@ class Order(TenantScopedMixin, TimestampMixin, Base):
             name="status_valid",
         ),
         CheckConstraint("total >= 0", name="total_not_negative"),
+        # Serves the order list: one tenant's orders, newest first, page by page (cursor)
+        Index("ix_orders_tenant_id_created_at_id", "tenant_id", "created_at", "id"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -33,7 +35,7 @@ class Order(TenantScopedMixin, TimestampMixin, Base):
     total: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     created_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
-    lines: Mapped[list["OrderLine"]] = relationship(back_populates="order")
+    lines: Mapped[list["OrderLine"]] = relationship(back_populates="order", order_by="OrderLine.id")
 
 
 class OrderLine(TenantScopedMixin, Base):

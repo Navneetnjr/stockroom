@@ -65,6 +65,18 @@ class InsufficientStockError(ApiError):
     problem_type = "/problems/insufficient-stock"
 
 
+class InvalidTransitionError(ApiError):
+    status = 409
+    title = "Invalid status change"
+    problem_type = "/problems/invalid-transition"
+
+
+class InvalidCursorError(ApiError):
+    status = 400
+    title = "Invalid cursor"
+    problem_type = "/problems/invalid-cursor"
+
+
 def problem_response(
     status: int,
     title: str,

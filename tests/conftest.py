@@ -1,27 +1,22 @@
-import os
 from collections.abc import Iterator
 
 import pytest
 from alembic import command
-from alembic.config import Config as AlembicConfig
 from flask import Flask
 from flask.testing import FlaskClient
 from sqlalchemy import text
 
 from app import create_app
 from app.extensions import Base, db
-from tests.helpers import settings_for_tests
-
-TEST_DATABASE_URL = os.environ["TEST_DATABASE_URL"]
+from tests.helpers import alembic_config, settings_for_tests
 
 
 @pytest.fixture(scope="session", autouse=True)
 def _migrate_test_database() -> None:
     """Build the tables in the test database once, by running the real migrations."""
-    alembic_cfg = AlembicConfig("alembic.ini")
-    alembic_cfg.set_main_option("sqlalchemy.url", TEST_DATABASE_URL.replace("%", "%%"))
-    command.downgrade(alembic_cfg, "base")  # start from an empty database
-    command.upgrade(alembic_cfg, "head")
+    config = alembic_config()
+    command.downgrade(config, "base")  # start from an empty database
+    command.upgrade(config, "head")
 
 
 @pytest.fixture(scope="session")

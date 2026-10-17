@@ -16,7 +16,11 @@ class User(TenantScopedMixin, TimestampMixin, Base):
     """A person who logs in for a tenant, either as admin or staff."""
 
     __tablename__ = "users"
-    __table_args__ = (CheckConstraint("role IN ('admin', 'staff')", name="role_valid"),)
+    __table_args__ = (
+        CheckConstraint("role IN ('admin', 'staff')", name="role_valid"),
+        # Emails are stored in lower case, so login and the unique rule ignore capitals
+        CheckConstraint("email = lower(email)", name="email_lowercase"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     # Unique across all tenants, so a login only needs email + password
